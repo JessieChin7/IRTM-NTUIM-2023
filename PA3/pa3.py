@@ -42,15 +42,16 @@ def log_likelihood_ratio(n11, n01, n10, n00):
 
     log_L1 = n11 * safe_log(p) + n10 * safe_log(1 - p) + n01 * safe_log(p) + n00 * safe_log(1 - p)
     log_L2 = n11 * safe_log(p1) + n10 * safe_log(1 - p1) + n01 * safe_log(p2) + n00 * safe_log(1 - p2)
-
     return -2 * (log_L1 - log_L2)
 
-# Function to calculate Chi-Square
+# Function to calculate the Chi-Square statistic
 def chi_square(term_class_freq, overall_term_freq, class_sizes, total_docs, term):
     """
     Calculate the Chi-Square statistic for a given term.
     """
-    table = []
+    chi2_stat = 0
+
+    # Calculate the contingency table for each class
     for class_id in class_sizes:
         # Frequency of term in class
         f_term_in_class = term_class_freq[term].get(class_id, 0)
@@ -59,12 +60,32 @@ def chi_square(term_class_freq, overall_term_freq, class_sizes, total_docs, term
         # Frequency of not term in class
         f_not_term_in_class = class_sizes[class_id] - f_term_in_class
         # Frequency of not term not in class
-        f_not_term_not_in_class = total_docs - class_sizes[class_id] - f_term_not_in_class
+        f_not_term_not_in_class = total_docs - class_sizes[class_id] - f_term_not_in_class + f_term_in_class
 
-        table.append([f_term_in_class, f_term_not_in_class])
-        table.append([f_not_term_in_class, f_not_term_not_in_class])
+        # Constructing the 2x2 table for this class
+        observed = [
+            [f_term_in_class, f_term_not_in_class],
+            [f_not_term_in_class, f_not_term_not_in_class]
+        ]
 
-    chi2_stat, p, dof, ex = chi2_contingency(table, correction=False)
+        # Calculating expected frequencies
+        total = sum(sum(row) for row in observed)
+        expected = []
+        for i in range(2):
+            expected_row = []
+            row_total = sum(observed[i])
+            for j in range(2):
+                # Directly access the column total
+                column_total = observed[0][j] + observed[1][j]
+                expected_cell = (row_total * column_total) / total
+                expected_row.append(expected_cell)
+            expected.append(expected_row)
+
+        # Calculating Chi-Square statistic
+        for i in range(2):
+            for j in range(2):
+                chi2_stat += (observed[i][j] - expected[i][j])**2 / expected[i][j]
+
     return chi2_stat
 
 # Modified feature extraction and selection function
